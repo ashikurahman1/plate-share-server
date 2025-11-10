@@ -4,8 +4,6 @@ require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 
-const PORT = process.env.PORT || 5100;
-
 // middleware
 app.use(cors());
 app.use(express.json());
@@ -28,26 +26,24 @@ async function run() {
     const foodsCollection = db.collection('foods');
     const usersCollection = db.collection('users');
 
-    
+    // Root route (for testing)
     app.get('/', (req, res) => {
       res.send('🍽️ Plate Share Server is running successfully!');
     });
 
-
-
-    
+    // User API
     app.post('/users', async (req, res) => {
       const newUser = req.body;
       const email = req.body.email;
-      const query = { email: email };
+      const query = { email };
       const existingUser = await usersCollection.findOne(query);
 
       if (existingUser) {
-        res.send({ message: 'user already exist.' });
-      } else {
-        const result = await usersCollection.insertOne(newUser);
-        res.status(200).send(result);
+        return res.send({ message: 'user already exists.' });
       }
+
+      const result = await usersCollection.insertOne(newUser);
+      res.status(200).send(result);
     });
 
     // Featured Foods API
@@ -66,7 +62,7 @@ async function run() {
       }
     });
 
-    // Food Related API
+    // Food APIs
     app.get('/foods', async (req, res) => {
       try {
         const availableFoods = await foodsCollection
@@ -103,11 +99,16 @@ async function run() {
       }
     });
   } finally {
+    // no need to close connection manually in serverless env
   }
 }
+
 run().catch(console.dir);
 
-app.listen(PORT, () => {
-  console.log(`Smart server is running on port: ${PORT}`);
-});
+
+// app.listen(PORT, () => {
+//   console.log(`Smart server is running on port: ${PORT}`);
+// });
+
+// ✅ Vercel এর জন্য export করতে হবে
 module.exports = app;
