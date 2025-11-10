@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5100;
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://ashikurahmantuhin_db_user:Bangladesh71@plate-share.jsoauh9.mongodb.net/?appName=plate-share`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@plate-share.jsoauh9.mongodb.net/?appName=plate-share`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -27,13 +27,6 @@ async function run() {
     const db = client.db('plate_share');
     const foodsCollection = db.collection('foods');
     const usersCollection = db.collection('users');
-
-    // User Related API
-    // app.get('/users', async (req, res) => {
-    //   const cursor = usersCollection.find();
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
 
     app.post('/users', async (req, res) => {
       const newUser = req.body;
@@ -82,8 +75,6 @@ async function run() {
     app.get('/foods/:id', async (req, res) => {
       try {
         const id = req.params.id;
-        console.log(id);
-
         const objectId = new ObjectId(id);
         const result = await foodsCollection.findOne({ _id: objectId });
         res.send(result);
