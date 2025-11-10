@@ -1,4 +1,3 @@
-
 {
   "version": 2,
   "builds": [
@@ -11,7 +10,7 @@
     {
       "src": "/(.*)",
       "dest": "api/server.js",
-      "methods"js: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     }
   ]
 }
