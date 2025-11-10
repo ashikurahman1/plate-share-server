@@ -19,18 +19,37 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-app.get('/', (req, res) => {
-  res.send({ message: 'Welcome' });
-});
+
 async function run() {
   try {
     await client.connect();
 
     const db = client.db('plate_share');
     const foodsCollection = db.collection('foods');
+    const usersCollection = db.collection('users');
+
+    // User Related API
+    app.get('/users', async (req, res) => {
+      const cursor = usersCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.post('/users', async (req, res) => {
+      const newUser = req.body;
+      const email = req.body.email;
+      const query = { email: email };
+      const existingUser = await usersCollection.findOne(query);
+
+      if (existingUser) {
+        res.send({ message: 'user already exist.' });
+      } else {
+        const result = await usersCollection.insertOne(newUser);
+        res.status(200).send(result);
+      }
+    });
 
     // Food Related API
-
     app.get('/foods', async (req, res) => {
       const cursor = foodsCollection.find();
       const result = await cursor.toArray();
