@@ -29,11 +29,11 @@ async function run() {
     const usersCollection = db.collection('users');
 
     // User Related API
-    app.get('/users', async (req, res) => {
-      const cursor = usersCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    // app.get('/users', async (req, res) => {
+    //   const cursor = usersCollection.find();
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
 
     app.post('/users', async (req, res) => {
       const newUser = req.body;
@@ -49,17 +49,58 @@ async function run() {
       }
     });
 
+    // Featured Foods API
+    app.get('/featured-foods', async (req, res) => {
+      try {
+        const featuredFoods = await foodsCollection
+          .find({ food_status: 'Available' })
+          .sort({ food_quantity: -1 })
+          .limit(6)
+          .toArray();
+
+        res.status(200).json(featuredFoods);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+
     // Food Related API
     app.get('/foods', async (req, res) => {
-      const cursor = foodsCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
+      try {
+        const availableFoods = await foodsCollection
+          .find({ food_status: 'Available' })
+          .toArray();
+
+        res.status(200).json(availableFoods);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+
+    app.get('/foods/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const objectId = new ObjectId(id);
+        // const query = { _id: new ObjectId(id) };
+        const result = await foodsCollection.findOne({ _id: objectId });
+        res.status(200).json(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
     });
 
     app.post('/foods', async (req, res) => {
-      const newFood = req.body;
-      const result = await foodsCollection.insertOne(newFood);
-      res.status(200).send(result);
+      try {
+        const newFood = req.body;
+        const result = await foodsCollection.insertOne(newFood);
+        res.status(200).send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
     });
   } finally {
   }
