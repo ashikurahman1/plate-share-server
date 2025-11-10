@@ -28,6 +28,14 @@ async function run() {
     const foodsCollection = db.collection('foods');
     const usersCollection = db.collection('users');
 
+    
+    app.get('/', (req, res) => {
+      res.send('🍽️ Plate Share Server is running successfully!');
+    });
+
+
+
+    
     app.post('/users', async (req, res) => {
       const newUser = req.body;
       const email = req.body.email;
@@ -102,3 +110,4 @@ run().catch(console.dir);
 app.listen(PORT, () => {
   console.log(`Smart server is running on port: ${PORT}`);
 });
+module.exports = app;
