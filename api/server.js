@@ -81,6 +81,7 @@ async function run() {
         res.status(500).json({ message: 'Internal Server Error' });
       }
     });
+
     app.get('/api/foods/availables', async (req, res) => {
       try {
         const availableFoods = await foodsCollection
@@ -110,6 +111,45 @@ async function run() {
       try {
         const newFood = req.body;
         const result = await foodsCollection.insertOne(newFood);
+        res.status(200).send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+
+    app.patch('/api/foods/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const updateData = req.body;
+        const result = await foodsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateData }
+        );
+
+        if (result.modifiedCount > 0) {
+          res
+            .status(200)
+            .json({ success: true, message: 'Food updated successfully' });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: 'Food not found or no changes made',
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        res
+          .status(500)
+          .json({ success: false, message: 'Internal Server Error' });
+      }
+    });
+
+    app.delete('/api/foods/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await foodsCollection.deleteOne(query);
         res.status(200).send(result);
       } catch (error) {
         console.error(error);
