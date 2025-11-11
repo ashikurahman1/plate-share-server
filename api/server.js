@@ -4,6 +4,8 @@ require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 
+const PORT = process.env.PORT || 5100;
+
 // middleware
 app.use(cors());
 app.use(express.json());
@@ -32,7 +34,7 @@ async function run() {
     });
 
     // User API
-    app.post('/users', async (req, res) => {
+    app.post('/api/users', async (req, res) => {
       const newUser = req.body;
       const email = req.body.email;
       const query = { email };
@@ -47,7 +49,7 @@ async function run() {
     });
 
     // Featured Foods API
-    app.get('/featured-foods', async (req, res) => {
+    app.get('/api/featured-foods', async (req, res) => {
       try {
         const featuredFoods = await foodsCollection
           .find({ food_status: 'Available' })
@@ -63,7 +65,7 @@ async function run() {
     });
 
     // Food APIs
-    app.get('/foods', async (req, res) => {
+    app.get('/api/foods', async (req, res) => {
       try {
         const availableFoods = await foodsCollection
           .find({ food_status: 'Available' })
@@ -76,7 +78,7 @@ async function run() {
       }
     });
 
-    app.get('/foods/:id', async (req, res) => {
+    app.get('/api/foods/:id', async (req, res) => {
       try {
         const id = req.params.id;
         const objectId = new ObjectId(id);
@@ -88,7 +90,7 @@ async function run() {
       }
     });
 
-    app.post('/foods', async (req, res) => {
+    app.post('/api/foods', async (req, res) => {
       try {
         const newFood = req.body;
         const result = await foodsCollection.insertOne(newFood);
@@ -105,10 +107,9 @@ async function run() {
 
 run().catch(console.dir);
 
-
-// app.listen(PORT, () => {
-//   console.log(`Smart server is running on port: ${PORT}`);
-// });
+app.listen(PORT, () => {
+  console.log(`Smart server is running on port: ${PORT}`);
+});
 
 // ✅ Vercel এর জন্য export করতে হবে
-module.exports = app;
+// module.exports = app;
