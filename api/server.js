@@ -1,10 +1,37 @@
 const express = require('express');
 const cors = require('cors');
+
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 
 const PORT = process.env.PORT || 5100;
+
+const admin = require('firebase-admin');
+
+const serviceAccount = require('../plate-share-alpha-firebase-adminsdk.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const verifyFireBaseToken = async (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ message: 'unauthorized' });
+  }
+  const token = authorization.split(' ')[1];
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+
+    console.log(decoded);
+    req.token_email = decoded.email;
+    next();
+  } catch (err) {
+    return res.status(401).send({ message: 'unauthorized' });
+  }
+};
 
 // middleware
 app.use(cors());
@@ -95,7 +122,7 @@ async function run() {
       }
     });
 
-    app.get('/api/foods/:id', async (req, res) => {
+    app.get('/api/foods/:id', verifyFireBaseToken, async (req, res) => {
       try {
         const id = req.params.id;
         const objectId = new ObjectId(id);
@@ -107,7 +134,7 @@ async function run() {
       }
     });
 
-    app.post('/api/foods', async (req, res) => {
+    app.post('/api/foods', verifyFireBaseToken, async (req, res) => {
       try {
         const newFood = req.body;
         const result = await foodsCollection.insertOne(newFood);
@@ -118,7 +145,7 @@ async function run() {
       }
     });
 
-    app.patch('/api/foods/:id', async (req, res) => {
+    app.patch('/api/foods/:id', verifyFireBaseToken, async (req, res) => {
       try {
         const { id } = req.params;
         const updateData = req.body;
@@ -145,7 +172,7 @@ async function run() {
       }
     });
 
-    app.delete('/api/foods/:id', async (req, res) => {
+    app.delete('/api/foods/:id', verifyFireBaseToken, async (req, res) => {
       try {
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
@@ -158,7 +185,7 @@ async function run() {
     });
 
     // Food Request related api
-    app.get('/api/food-req/:foodId', async (req, res) => {
+    app.get('/api/food-req/:foodId', verifyFireBaseToken, async (req, res) => {
       try {
         const foodId = req.params.foodId;
 
@@ -175,12 +202,91 @@ async function run() {
         res.status(500).json({ message: 'Internal Server Error' });
       }
     });
+    app.patch('/api/food-req/:id', verifyFireBaseToken, async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = { $set: { status } };
+        const result = await requestCollection.updateOne(filter, updateDoc);
 
-    app.post('/api/food-req', async (req, res) => {
+        if (result.modifiedCount > 0) {
+          res.status(200).json({ success: true, message: `Request ${status}` });
+        } else {
+          res
+            .status(404)
+            .json({ success: false, message: 'Request not found' });
+        }
+      } catch (error) {
+        console.error(error);
+        res
+          .status(500)
+          .json({ success: false, message: 'Internal Server Error' });
+      }
+    });
+
+    app.patch(
+      '/api/foods/status/:id',
+      verifyFireBaseToken,
+      async (req, res) => {
+        try {
+          const { id } = req.params;
+          const { food_status } = req.body;
+          const result = await foodsCollection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: { food_status } }
+          );
+
+          if (result.modifiedCount > 0) {
+            res
+              .status(200)
+              .json({ success: true, message: 'Food status updated' });
+          } else {
+            res.status(404).json({ success: false, message: 'Food not found' });
+          }
+        } catch (error) {
+          console.error(error);
+          res
+            .status(500)
+            .json({ success: false, message: 'Internal Server Error' });
+        }
+      }
+    );
+
+    app.post('/api/food-req', verifyFireBaseToken, async (req, res) => {
       try {
         const newReq = req.body;
         const result = await requestCollection.insertOne(newReq);
         res.status(200).send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+
+    app.delete('/api/food-req/:id', verifyFireBaseToken, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await requestCollection.deleteOne(query);
+        res.status(200).json(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+
+    app.get('/api/my-requests', verifyFireBaseToken, async (req, res) => {
+      try {
+        const { email } = req.query;
+        if (!email) {
+          return res.status(400).json({ message: 'Email is required' });
+        }
+
+        const result = await requestCollection
+          .find({ requester_email: email })
+          .toArray();
+        res.status(200).json(result);
       } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal Server Error' });
