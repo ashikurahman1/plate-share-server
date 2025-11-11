@@ -9,14 +9,14 @@ const PORT = process.env.PORT || 5100;
 
 const admin = require('firebase-admin');
 
-// const serviceAccount = require('../plate-share-alpha-firebase-adminsdk.json');
+const decoded = Buffer.from(
+  process.env.FIREBASE_SERVICE_KEY,
+  'base64'
+).toString('utf8');
+const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-  }),
+  credential: admin.credential.cert(serviceAccount),
 });
 
 const verifyFireBaseToken = async (req, res, next) => {
