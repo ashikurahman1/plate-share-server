@@ -9,10 +9,14 @@ const PORT = process.env.PORT || 5100;
 
 const admin = require('firebase-admin');
 
-const serviceAccount = require('../plate-share-alpha-firebase-adminsdk.json');
+// const serviceAccount = require('../plate-share-alpha-firebase-adminsdk.json');
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  }),
 });
 
 const verifyFireBaseToken = async (req, res, next) => {
@@ -93,7 +97,7 @@ async function run() {
     });
 
     // Food APIs
-    app.get('/api/foods', async (req, res) => {
+    app.get('/api/foods', verifyFireBaseToken, async (req, res) => {
       try {
         const { email } = req.query;
         let query = {};
@@ -122,7 +126,7 @@ async function run() {
       }
     });
 
-    app.get('/api/foods/:id', verifyFireBaseToken, async (req, res) => {
+    app.get('/api/foods/:id', async (req, res) => {
       try {
         const id = req.params.id;
         const objectId = new ObjectId(id);
@@ -191,12 +195,8 @@ async function run() {
 
         const query = { food_id: foodId };
         const result = await requestCollection.find(query).toArray();
-        if (result.length === 0) {
-          return res
-            .status(404)
-            .json({ message: 'No requests found for this food ID' });
-        }
-        res.status(200).send(result);
+
+        res.status(200).json(result);
       } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal Server Error' });
@@ -276,7 +276,7 @@ async function run() {
       }
     });
 
-    app.get('/api/my-requests', verifyFireBaseToken, async (req, res) => {
+    app.get('/api/my-requests', async (req, res) => {
       try {
         const { email } = req.query;
         if (!email) {
