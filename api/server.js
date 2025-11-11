@@ -22,11 +22,12 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     const db = client.db('plate_share');
     const foodsCollection = db.collection('foods');
     const usersCollection = db.collection('users');
+    const requestCollection = db.collection('food_request');
 
     // Root route (for testing)
     app.get('/', (req, res) => {
@@ -67,6 +68,21 @@ async function run() {
     // Food APIs
     app.get('/api/foods', async (req, res) => {
       try {
+        const { email } = req.query;
+        let query = {};
+        if (email) {
+          query = { donor_email: email };
+        }
+        const userFoods = await foodsCollection.find(query).toArray();
+
+        res.status(200).json(userFoods);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+    app.get('/api/foods/availables', async (req, res) => {
+      try {
         const availableFoods = await foodsCollection
           .find({ food_status: 'Available' })
           .toArray();
@@ -100,6 +116,35 @@ async function run() {
         res.status(500).json({ message: 'Internal Server Error' });
       }
     });
+
+    // Food Request related api
+    app.get('/api/food-req/:foodId', async (req, res) => {
+      try {
+        const foodId = req.params.foodId;
+
+        const query = { food_id: foodId };
+        const result = await requestCollection.find(query).toArray();
+        if (result.length === 0) {
+          return res
+            .status(404)
+            .json({ message: 'No requests found for this food ID' });
+        }
+        res.status(200).send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+    app.post('/api/food-req', async (req, res) => {
+      try {
+        const newReq = req.body;
+        const result = await requestCollection.insertOne(newReq);
+        res.status(200).send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
   } finally {
     // no need to close connection manually in serverless env
   }
@@ -107,9 +152,6 @@ async function run() {
 
 run().catch(console.dir);
 
-// app.listen(PORT, () => {
-//   console.log(`Smart server is running on port: ${PORT}`);
-// });
-
-// ✅ Vercel এর জন্য export করতে হবে
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`Smart server is running on port: ${PORT}`);
+});
