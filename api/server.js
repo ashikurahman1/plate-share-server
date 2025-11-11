@@ -107,9 +107,9 @@ async function run() {
 
 run().catch(console.dir);
 
-app.listen(PORT, () => {
-  console.log(`Smart server is running on port: ${PORT}`);
-});
+// app.listen(PORT, () => {
+//   console.log(`Smart server is running on port: ${PORT}`);
+// });
 
 // ✅ Vercel এর জন্য export করতে হবে
-// module.exports = app;
+module.exports = app;
