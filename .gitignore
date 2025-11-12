@@ -1,3 +1,4 @@
 node_modules
 .env
 plate-share-alpha-firebase-adminsdk.json
+.vercel
