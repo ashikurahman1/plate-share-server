@@ -66,6 +66,23 @@ async function run() {
     });
 
     // User API
+    app.get('/api/users/:email', async (req, res) => {
+      try {
+        const email = req.params.email;
+        let result = await usersCollection.findOne({ email });
+        
+        // Safety promotion for admin
+        if (email === 'admin@test.com' && result && result.role !== 'admin') {
+          await usersCollection.updateOne({ email }, { $set: { role: 'admin' } });
+          result.role = 'admin';
+        }
+
+        res.status(200).send(result);
+      } catch (error) {
+        res.status(500).send({ message: 'Error fetching user' });
+      }
+    });
+
     app.post('/api/users', async (req, res) => {
       const newUser = req.body;
       const email = req.body.email;
@@ -73,11 +90,34 @@ async function run() {
       const existingUser = await usersCollection.findOne(query);
 
       if (existingUser) {
-        return res.send({ message: 'user already exists.' });
+        // If user exists but has no role, assign one
+        if (!existingUser.role) {
+          const role = email === 'admin@test.com' ? 'admin' : 'user';
+          await usersCollection.updateOne(query, { $set: { role } });
+          return res.send({ message: 'user updated with role', role });
+        }
+        return res.send({ message: 'user already exists.', role: existingUser.role });
       }
 
-      const result = await usersCollection.insertOne(newUser);
-      res.status(200).send(result);
+      // New User logic
+      const role = email === 'admin@test.com' ? 'admin' : 'user';
+      const result = await usersCollection.insertOne({ ...newUser, role });
+      res.status(200).send({ ...result, role });
+    });
+
+    // Update Profile API
+    app.patch('/api/users/:email', async (req, res) => {
+      try {
+        const email = req.params.email;
+        const updateData = req.body;
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: updateData }
+        );
+        res.status(200).send(result);
+      } catch (error) {
+        res.status(500).send({ message: 'Error updating profile' });
+      }
     });
 
     // Featured Foods API
