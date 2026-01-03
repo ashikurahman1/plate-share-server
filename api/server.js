@@ -66,9 +66,18 @@ async function run() {
     });
 
     // User API
+    app.get('/api/users', verifyFireBaseToken, async (req, res) => {
+      try {
+        const result = await usersCollection.find().toArray();
+        res.status(200).send(result);
+      } catch (error) {
+        res.status(500).send({ message: 'Error fetching users' });
+      }
+    });
+
     app.get('/api/users/:email', async (req, res) => {
       try {
-        const email = req.params.email;
+        const email = req.params.email.toLowerCase();
         let result = await usersCollection.findOne({ email });
         
         // Safety promotion for admin
@@ -85,7 +94,7 @@ async function run() {
 
     app.post('/api/users', async (req, res) => {
       const newUser = req.body;
-      const email = req.body.email;
+      const email = req.body.email.toLowerCase();
       const query = { email };
       const existingUser = await usersCollection.findOne(query);
 
@@ -101,7 +110,7 @@ async function run() {
 
       // New User logic
       const role = email === 'admin@test.com' ? 'admin' : 'user';
-      const result = await usersCollection.insertOne({ ...newUser, role });
+      const result = await usersCollection.insertOne({ ...newUser, email, role });
       res.status(200).send({ ...result, role });
     });
 
@@ -117,6 +126,36 @@ async function run() {
         res.status(200).send(result);
       } catch (error) {
         res.status(500).send({ message: 'Error updating profile' });
+      }
+    });
+
+    app.delete('/api/users/:id', verifyFireBaseToken, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await usersCollection.deleteOne(query);
+        res.status(200).send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+      }
+    });
+
+    // Admin Stats API
+    app.get('/api/admin-stats', verifyFireBaseToken, async (req, res) => {
+      try {
+        const totalUsers = await usersCollection.countDocuments();
+        const totalActiveFoods = await foodsCollection.countDocuments({ food_status: 'Available' });
+        const totalRequests = await requestCollection.countDocuments();
+        
+        res.status(200).send({
+          totalUsers,
+          totalActiveFoods,
+          totalRequests
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
       }
     });
 
